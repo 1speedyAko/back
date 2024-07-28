@@ -69,7 +69,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DJOSER = {
     'USER_ID_FIELD': 'email',
     'LOGIN_FIELD': 'email',
-    'PASSWORD_RESET_CONFIRM_URL': 'auth/password/reset-password-confirmation/?uid={uid}&token={token}',
+    'PASSWORD_RESET_CONFIRM_URL': 'reset-password-confirmation/?uid={uid}&token={token}',
     'ACTIVATION_URL': '#/activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': False,  # Set to True if you decide to use activation emails
     'SERIALIZERS': {

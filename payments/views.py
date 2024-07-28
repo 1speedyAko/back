@@ -1,76 +1,73 @@
-# payments/views.py
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.views import APIView
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .cryptomus import CryptomusAPI
 from django.conf import settings
-from .models import Payment, Product
-from .serializers import PaymentSerializer
-from .utils import create_charge
-import hmac
-import hashlib
-import json
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
-    serializer_class = PaymentSerializer
+@csrf_exempt
+def create_payment(request):
+    if request.method == 'POST':
+        data = request.json()
+        try:
+            amount = data['amount']
+            currency = data['currency']
+            order_id = data['order_id']
+            callback_url = data['callback_url']
+        except KeyError:
+            return JsonResponse({'error': 'Missing required fields'}, status=400)
 
-    @action(detail=False, methods=['post'])
-    def create_charge(self, request):
-        user = request.user
-        product_id = request.data.get('product_id')
-        product = Product.objects.get(id=product_id)
-        amount = product.price
-        currency = request.data.get('currency')
-        buyer_email = user.email
-        item_name = product.name
+        cryptomus = CryptomusAPI(settings.CRYPTO_API_KEY, settings.CRYPTO_SECRET_KEY)
+        response = cryptomus.create_invoice(amount, currency, order_id, callback_url)
+        
+        if response.get('error'):
+            return JsonResponse({'error': response['error']}, status=400)
+
+        Payment.objects.create(
+            order_id=order_id,
+            amount=amount,
+            currency=currency,
+            status='pending'
+        )
+
+        return JsonResponse(response)
+
+@csrf_exempt
+def payment_callback(request):
+    if request.method == 'POST':
+        if not verify_signature(request):
+            return JsonResponse({'status': 'failed', 'message': 'Invalid signature'}, status=400)
+
+        data = request.json()
+        try:
+            order_id = data['order_id']
+            status = data['status']
+        except KeyError:
+            return JsonResponse({'status': 'failed', 'message': 'Missing order_id or status'}, status=400)
 
         try:
-            charge = create_charge(amount, currency, buyer_email, item_name)
-            payment = Payment.objects.create(
-                user=user,
-                product=product,
-                amount=amount,
-                status='pending',
-                transaction_id=charge['txn_id']
-            )
+            payment = Payment.objects.get(order_id=order_id)
+            payment.status = status
+            payment.save()
+        except Payment.DoesNotExist:
+            return JsonResponse({'status': 'failed', 'message': 'Payment not found'}, status=404)
 
-            return Response({'checkout_url': charge['checkout_url']}, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse({'status': 'success'})
 
-# payments/views.py (add this to the existing views)
-class CoinPaymentsWebhookView(APIView):
-    def post(self, request, *args, **kwargs):
-        webhook_secret = settings.COINPAYMENTS_API_SECRET
-        request_data = json.loads(request.body.decode('utf-8'))
-        signature = request.headers.get('HMAC', '')
 
-        computed_signature = hmac.new(webhook_secret.encode('utf-8'), request.body, hashlib.sha512).hexdigest()
+@csrf_exempt
+def check_payment_status(request):
+    if request.method == 'POST':
+        data = request.json()
+        order_id = data['order_id']
 
-        if hmac.compare_digest(signature, computed_signature):
-            txn_id = request_data.get('txn_id')
-            status = request_data.get('status')
-            
-            if status == 100:  # Payment confirmed
-                payment = Payment.objects.get(transaction_id=txn_id)
-                payment.status = 'confirmed'
-                payment.save()
+        cryptomus = CryptomusAPI(settings.CRYPTO_API_KEY, settings.CRYPTO_SECRET_KEY)
+        response = cryptomus.check_payment_status(order_id)
+        
+        # Update payment status in the database
+        try:
+            payment = Payment.objects.get(order_id=order_id)
+            payment.status = response['status']
+            payment.save()
+        except Payment.DoesNotExist:
+            return JsonResponse({'status': 'failed', 'message': 'Payment not found'}, status=404)
 
-                # Activate subscription
-                Subscription.objects.create(
-                    user=payment.user,
-                    product=payment.product,
-                    start_date=timezone.now(),
-                    end_date=timezone.now() + timedelta(days=30),  # Example: 1 month subscription
-                    active=True
-                )
-
-            elif status < 0:  # Payment failed
-                payment = Payment.objects.get(transaction_id=txn_id)
-                payment.status = 'failed'
-                payment.save()
-
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return JsonResponse(response)

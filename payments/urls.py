@@ -1,13 +1,8 @@
-# payments/urls.py
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import PaymentViewSet, CoinPaymentsWebhookView
-
-router = DefaultRouter()
-router.register(r'payments', PaymentViewSet)
+from django.urls import path
+from .views import create_payment, payment_callback, check_payment_status
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('create-charge/', PaymentViewSet.as_view({'post': 'create_charge'}), name='create_charge'),
-    path('webhook/', CoinPaymentsWebhookView.as_view(), name='coinpayments_webhook'),
+    path('create-payment/', create_payment, name='create_payment'),
+    path('payment-callback/', payment_callback, name='payment_callback'),
+    path('check-payment-status/', check_payment_status, name='check_payment_status'),
 ]

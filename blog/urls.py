@@ -19,16 +19,14 @@ from django.conf.urls.static import static
 from django.urls import path, include
 from django.contrib import admin
 
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('main.urls')),
     path('users/', include('users.urls')),
-    path('api/', include('products.urls')),
-    path('api/', include('subscriptions.urls')),
-    path('api/', include('payments.urls')),
+    path('api/products/', include('products.urls')),
+    path('api/subscriptions/', include('subscriptions.urls')),
+    path('api/payments/', include('payments.urls')),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-

@@ -1,29 +1,29 @@
-# payments/utils.py
 import requests
 from django.conf import settings
 
-def create_charge(amount, currency, buyer_email, item_name):
-    url = 'https://www.coinpayments.net/api.php'
-    payload = {
-        'key': settings.COINPAYMENTS_API_KEY,
-        'cmd': 'create_transaction',
+def initiate_payment(user, product_id, amount, currency):
+    # Implement your Cryptomus payment initiation logic here
+    # For example:
+    response = requests.post('https://cryptomus.com/api/initiate', data={
+        'user': user.id,
+        'product_id': product_id,
         'amount': amount,
-        'currency1': 'USD',
-        'currency2': currency,
-        'buyer_email': buyer_email,
-        'item_name': item_name,
-        'format': 'json'
-    }
-    
-    headers = {
-        'Content-Type': 'application/json',
-        'HMAC': settings.COINPAYMENTS_API_SECRET
-    }
+        'currency': currency,
+    })
 
-    response = requests.post(url, json=payload, headers=headers)
-    response_data = response.json()
-    
-    if response_data['error'] == 'ok':
-        return response_data['result']
+    if response.status_code == 200:
+        return response.json()
     else:
-        raise Exception(response_data['error'])
+        return {'status': 'failed', 'message': 'Unable to initiate payment'}
+
+def verify_payment(payment):
+    # Implement your Cryptomus payment verification logic here
+    # For example:
+    response = requests.post('https://cryptomus.com/api/verify', data={
+        'transaction_id': payment.transaction_id,
+    })
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return {'status': 'failed', 'message': 'Unable to verify payment'}

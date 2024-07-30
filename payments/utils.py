@@ -1,29 +1,50 @@
 import requests
+import uuid
+import hmac
+import hashlib
 from django.conf import settings
+from .models import Payment
 
-def initiate_payment(user, product_id, amount, currency):
-    # Implement your Cryptomus payment initiation logic here
-    # For example:
-    response = requests.post('https://cryptomus.com/api/initiate', data={
-        'user': user.id,
-        'product_id': product_id,
-        'amount': amount,
-        'currency': currency,
-    })
+CRPYTOMUS_API_URL = "https://api.cryptomus.com/v1/recurrence/create"
 
-    if response.status_code == 200:
-        return response.json()
+def create_payment(user, product, amount, currency):
+    order_id = str(uuid.uuid4())
+    payload = {
+        "amount": str(amount),
+        "currency": currency,
+        "name": product.name,
+        "period": "monthly" if product.category == 'silver' else "bi-monthly" if product.category == 'gold' else "quarterly"
+    }
+
+    headers = {
+        'merchant': settings.CRYPTOMUS_MERCHANT_ID,
+        'sign': settings.CRYPTOMUS_API_KEY,
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.post(CRPYTOMUS_API_URL, json=payload, headers=headers)
+    response_data = response.json()
+
+    if response.status_code == 200 and response_data['state'] == 0:
+        payment = Payment.objects.create(
+            order_id=order_id,
+            user=user,
+            product=product,
+            amount=amount,
+            currency=currency,
+            status='pending',
+            transaction_id=response_data['result']['uuid']
+        )
+        return {'status': 'confirmed', 'payment': payment}
     else:
-        return {'status': 'failed', 'message': 'Unable to initiate payment'}
+        return {'status': 'failed', 'message': response_data.get('error', 'Unknown error')}
 
-def verify_payment(payment):
-    # Implement your Cryptomus payment verification logic here
-    # For example:
-    response = requests.post('https://cryptomus.com/api/verify', data={
-        'transaction_id': payment.transaction_id,
-    })
+def validate_webhook_signature(payload, signature):
+    secret = settings.SECRET_KEY
+    expected_signature = hmac.new(
+        key=secret.encode(),
+        msg=str(payload).encode(),
+        digestmod=hashlib.sha256
+    ).hexdigest()
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {'status': 'failed', 'message': 'Unable to verify payment'}
+    return hmac.compare_digest(expected_signature, signature)

@@ -14,11 +14,11 @@ class Payment(models.Model):
 
     order_id = models.CharField(max_length=255, unique=True, blank=False, default=1)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, default='silver')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=10)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    transaction_id = models.CharField(max_length=255, unique=True)
+    transaction_id = models.CharField(max_length=255, unique=True, default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -1,10 +1,7 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import PaymentViewSet
-
-router = DefaultRouter()
-router.register(r'payments', PaymentViewSet, basename='payment')
+from django.urls import path
+from .views import CreateSubscriptionView, CryptomusWebhookView
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('create-subscription/', CreateSubscriptionView.as_view(), name='create_subscription'),
+    path('webhook/', CryptomusWebhookView.as_view(), name='cryptomus_webhook'),
 ]

@@ -17,7 +17,13 @@ class CreateSubscriptionView(APIView):
         currency = request.data.get('currency')
         period = request.data.get('period')
 
-        if period not in ["1_month", "2_months", "3_months"]:
+        if period == '1_month':
+            amount = 49.9
+        elif period == '2_months':
+            amount = 89.9
+        elif period == "3_months":
+            amount = 129.9
+        else:
             return Response({"error": "Invalid subscription period"}, status=status.HTTP_400_BAD_REQUEST)
 
         response = create_payment(amount, currency, period)
@@ -36,8 +42,8 @@ class CreateSubscriptionView(APIView):
         else:
             return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-@method_decorator(csrf_exempt, name='dispatch')
 class CryptomusWebhookView(APIView):
+    @method_decorator(csrf_exempt, name='dispatch')
     def post(self, request, *args, **kwargs):
         payload = request.data
         signature = request.headers.get('sign')
@@ -46,14 +52,14 @@ class CryptomusWebhookView(APIView):
             return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
         transaction_id = payload.get('transaction_id')
-        status = payload.get('status')
+        webhook_status = payload.get('status')  # Changed to avoid shadowing 'status'
 
         try:
             payment = Payment.objects.get(transaction_id=transaction_id)
-            payment.status = status
+            payment.status = webhook_status
             payment.save()
 
-            if status == 'confirmed':
+            if webhook_status == 'confirmed':
                 user_subscription, created = UserSubscription.objects.get_or_create(user=payment.user)
                 if created:
                     user_subscription.start_date = timezone.now()

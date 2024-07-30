@@ -1,51 +1,39 @@
+# cryptomus.py
 import requests
-import hmac
-import hashlib
+import uuid
 from django.conf import settings
+from .models import Payment
 
-class CryptomusAPI:
-    BASE_URL = 'https://api.cryptomus.com/v1'
-    
-    def __init__(self, api_key, secret_key):
-        self.api_key = api_key
-        self.secret_key = secret_key
+CRPYTOMUS_API_URL = "https://api.cryptomus.com/v1/recurrence/create"
 
-    def create_invoice(self, amount, currency, order_id, callback_url):
-        endpoint = f"{self.BASE_URL}/invoice"
-        headers = {
-            'API-KEY': self.api_key,
-            'SECRET-KEY': self.secret_key,
-        }
-        payload = {
-            'amount': amount,
-            'currency': currency,
-            'order_id': order_id,
-            'callback_url': callback_url,
-        }
-        response = requests.post(endpoint, json=payload, headers=headers)
-        return response.json()
+def create_payment(user, product, amount, currency):
+    order_id = str(uuid.uuid4())
+    payload = {
+        "amount": str(amount),
+        "currency": currency,
+        "name": product.name,
+        "period": "monthly" if product.category == 'silver' else "bi-monthly" if product.category == 'gold' else "quarterly"
+    }
 
-    def check_payment_status(self, order_id):
-        endpoint = f"{self.BASE_URL}/invoice/status"
-        headers = {
-            'API-KEY': self.api_key,
-            'SECRET-KEY': self.secret_key,
-        }
-        payload = {
-            'order_id': order_id,
-        }
-        response = requests.post(endpoint, json=payload, headers=headers)
-        return response.json()
+    headers = {
+        'merchant': settings.CRYPTOMUS_MERCHANT_ID,
+        'sign': settings.CRYPTOMUS_API_KEY,
+        'Content-Type': 'application/json'
+    }
 
-    def verify_signature(request):
-        received_signature = request.headers.get('X-Signature')
-        secret_key = settings.CRYPTO_SECRET_KEY
+    response = requests.post(CRPYTOMUS_API_URL, json=payload, headers=headers)
+    response_data = response.json()
 
-        body = request.body
-        computed_signature = hmac.new(secret_key.encode(), body, hashlib.sha256).hexdigest()
-
-        return hmac.compare_digest(received_signature, computed_signature)
-
-# In settings.py or environment variables
-CRYPTO_API_KEY = 'your_api_key'
-CRYPTO_SECRET_KEY = 'your_secret_key'
+    if response.status_code == 200 and response_data['state'] == 0:
+        payment = Payment.objects.create(
+            order_id=order_id,
+            user=user,
+            product=product,
+            amount=amount,
+            currency=currency,
+            status='confirmed',
+            transaction_id=response_data['result']['uuid']
+        )
+        return {'status': 'confirmed', 'payment': payment}
+    else:
+        return {'status': 'failed', 'message': response_data.get('error', 'Unknown error')}

@@ -1,35 +1,50 @@
-import hashlib
-import hmac
-import json
 import requests
+import uuid
+import hmac
+import hashlib
 from django.conf import settings
+from .models import Payment
 
-CRYPTOMUS_API_URL = "https://api.cryptomus.com/v1/recurrence/create"
-CRYPTOMUS_API_KEY = settings.CRYPTOMUS_API_KEY
-CRYPTOMUS_SECRET_KEY = settings.COINPAYMENTS_API_SECRET
+CRPYTOMUS_API_URL = "https://api.cryptomus.com/v1/recurrence/create"
 
-def create_signature(payload):
-    return hmac.new(
-        CRYPTOMUS_SECRET_KEY.encode(), 
-        json.dumps(payload).encode(), 
-        hashlib.sha256
-    ).hexdigest()
-
-def create_payment(amount, currency, period):
-    endpoint = f"{CRYPTOMUS_API_URL}recurrence/create"
-    headers = {
-        "merchant": CRYPTOMUS_API_KEY,
-        "Content-Type": "application/json",
-    }
+def create_payment(user, product, amount, currency):
+    order_id = str(uuid.uuid4())
     payload = {
-        "amount": amount,
+        "amount": str(amount),
         "currency": currency,
-        "name": "Recurring payment",
-        "period": period
+        "name": product.name,
+        "period": "monthly" if product.category == 'silver' else "bi-monthly" if product.category == 'gold' else "quarterly"
     }
-    headers["sign"] = create_signature(payload)
-    response = requests.post(endpoint, headers=headers, json=payload)
-    return response.json()
+
+    headers = {
+        'merchant': settings.CRYPTOMUS_MERCHANT_ID,
+        'sign': settings.CRYPTOMUS_API_KEY,
+        'Content-Type': 'application/json'
+    }
+
+    response = requests.post(CRPYTOMUS_API_URL, json=payload, headers=headers)
+    response_data = response.json()
+
+    if response.status_code == 200 and response_data['state'] == 0:
+        payment = Payment.objects.create(
+            order_id=order_id,
+            user=user,
+            product=product,
+            amount=amount,
+            currency=currency,
+            status='pending',
+            transaction_id=response_data['result']['uuid']
+        )
+        return {'status': 'confirmed', 'payment': payment}
+    else:
+        return {'status': 'failed', 'message': response_data.get('error', 'Unknown error')}
 
 def validate_webhook_signature(payload, signature):
-    return create_signature(payload) == signature
+    secret = settings.SECRET_KEY
+    expected_signature = hmac.new(
+        key=secret.encode(),
+        msg=str(payload).encode(),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected_signature, signature)

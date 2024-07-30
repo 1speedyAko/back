@@ -1,52 +1,77 @@
-from rest_framework import viewsets
+from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework import status
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from .models import Payment
-from .serializers import PaymentSerializer
-from .utils import initiate_payment, verify_payment
+from .utils import create_payment, validate_webhook_signature
+from subscriptions.models import UserSubscription
+from datetime import timedelta
+from django.utils import timezone
 
-class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.all()
-    serializer_class = PaymentSerializer
-
-    @action(detail=False, methods=['post'])
-    def create_payment(self, request):
-        data = request.data
+class CreateSubscriptionView(APIView):
+    def post(self, request, *args, **kwargs):
         user = request.user
-        product_id = data.get('product_id')
-        amount = data.get('amount')
-        currency = data.get('currency')
+        product_id = request.data.get('product_id')
+        amount = request.data.get('amount')
+        currency = request.data.get('currency')
+        period = request.data.get('period')
 
-        # Initiate payment
-        payment_response = initiate_payment(user, product_id, amount, currency)
-        
-        if payment_response['status'] == 'success':
+        if period not in ["1_month", "2_months", "3_months"]:
+            return Response({"error": "Invalid subscription period"}, status=status.HTTP_400_BAD_REQUEST)
+
+        response = create_payment(amount, currency, period)
+
+        if response['state'] == 0:
             payment = Payment.objects.create(
+                order_id=response['result']['uuid'],
                 user=user,
                 product_id=product_id,
                 amount=amount,
                 currency=currency,
-                order_id=payment_response['order_id'],
-                transaction_id=payment_response['transaction_id'],
-                status='pending'
+                status='pending',
+                transaction_id=response['result']['uuid'],
             )
-            return Response({'status': 'success', 'payment': PaymentSerializer(payment).data})
+            return Response(response['result'], status=status.HTTP_201_CREATED)
         else:
-            return Response({'status': 'failed', 'message': payment_response['message']}, status=400)
+            return Response(response, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['post'])
-    def verify_payment(self, request):
-        order_id = request.data.get('order_id')
-        payment = Payment.objects.get(order_id=order_id)
+@method_decorator(csrf_exempt, name='dispatch')
+class CryptomusWebhookView(APIView):
+    def post(self, request, *args, **kwargs):
+        payload = request.data
+        signature = request.headers.get('sign')
 
-        # Verify payment
-        verification_response = verify_payment(payment)
+        if not validate_webhook_signature(payload, signature):
+            return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
-        if verification_response['status'] == 'confirmed':
-            payment.status = 'confirmed'
+        transaction_id = payload.get('transaction_id')
+        status = payload.get('status')
+
+        try:
+            payment = Payment.objects.get(transaction_id=transaction_id)
+            payment.status = status
             payment.save()
-            return Response({'status': 'success', 'payment': PaymentSerializer(payment).data})
-        else:
-            payment.status = 'failed'
-            payment.save()
-            return Response({'status': 'failed', 'message': verification_response['message']}, status=400)
+
+            if status == 'confirmed':
+                user_subscription, created = UserSubscription.objects.get_or_create(user=payment.user)
+                if created:
+                    user_subscription.start_date = timezone.now()
+
+                if payload['period'] == '1_month':
+                    user_subscription.end_date = user_subscription.start_date + timedelta(days=30)
+                elif payload['period'] == '2_months':
+                    user_subscription.end_date = user_subscription.start_date + timedelta(days=60)
+                elif payload['period'] == '3_months':
+                    user_subscription.end_date = user_subscription.start_date + timedelta(days=90)
+                
+                user_subscription.status = 'active'
+                user_subscription.save()
+
+            return Response({'status': 'success'}, status=status.HTTP_200_OK)
+        except Payment.DoesNotExist:
+            return Response({'error': 'Payment not found'}, status=status.HTTP_400_BAD_REQUEST)
+        except UserSubscription.DoesNotExist:
+            return Response({'error': 'User subscription not found'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

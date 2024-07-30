@@ -1,29 +1,35 @@
+import hashlib
+import hmac
+import json
 import requests
 from django.conf import settings
 
-def initiate_payment(user, product_id, amount, currency):
-    # Implement your Cryptomus payment initiation logic here
-    # For example:
-    response = requests.post('https://cryptomus.com/api/initiate', data={
-        'user': user.id,
-        'product_id': product_id,
-        'amount': amount,
-        'currency': currency,
-    })
+CRYPTOMUS_API_URL = "https://api.cryptomus.com/v1/recurrence/create"
+CRYPTOMUS_API_KEY = settings.CRYPTOMUS_API_KEY
+CRYPTOMUS_SECRET_KEY = settings.COINPAYMENTS_API_SECRET
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {'status': 'failed', 'message': 'Unable to initiate payment'}
+def create_signature(payload):
+    return hmac.new(
+        CRYPTOMUS_SECRET_KEY.encode(), 
+        json.dumps(payload).encode(), 
+        hashlib.sha256
+    ).hexdigest()
 
-def verify_payment(payment):
-    # Implement your Cryptomus payment verification logic here
-    # For example:
-    response = requests.post('https://cryptomus.com/api/verify', data={
-        'transaction_id': payment.transaction_id,
-    })
+def create_payment(amount, currency, period):
+    endpoint = f"{CRYPTOMUS_API_URL}recurrence/create"
+    headers = {
+        "merchant": CRYPTOMUS_API_KEY,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "amount": amount,
+        "currency": currency,
+        "name": "Recurring payment",
+        "period": period
+    }
+    headers["sign"] = create_signature(payload)
+    response = requests.post(endpoint, headers=headers, json=payload)
+    return response.json()
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {'status': 'failed', 'message': 'Unable to verify payment'}
+def validate_webhook_signature(payload, signature):
+    return create_signature(payload) == signature

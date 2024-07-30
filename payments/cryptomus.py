@@ -1,6 +1,7 @@
 import requests
 import hmac
 import hashlib
+from django.conf import settings
 
 class CryptomusAPI:
     BASE_URL = 'https://api.cryptomus.com/v1'

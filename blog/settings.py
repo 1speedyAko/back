@@ -13,6 +13,12 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
+from dotenv import load_dotenv
+from pathlib import Path
+
+env_path = Path('.') / '.env'
+load_dotenv(dotenv_path=env_path)
+
 
 SECRET_KEY = config('SECRET_KEY')
 CRYPTOMUS_MERCHANT_ID = config('CRYPTOMUS_MERCHANT_ID')
@@ -30,10 +36,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x8kmp1i_yuxte7!ch1si^(54%(3)=9^a)x@ey$!)e7k-7e6)q-'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
 ALLOWED_HOSTS = []
 

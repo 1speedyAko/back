@@ -1,17 +1,18 @@
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
-from .models import SubscriptionPlan, UserSubscription
-from .serializers import SubscriptionPlanSerializer, UserSubscriptionPlanSerializer
+# subscriptions/views.py
 
-class SubscriptionPlanViewSet(viewsets.ReadOnlyModelViewSet):
-    
+from rest_framework import generics, permissions
+from .models import SubscriptionPlan, UserSubscription
+from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
+
+class SubscriptionPlanListView(generics.ListAPIView):
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
+    permission_classes = [permissions.AllowAny]
 
-class UserSubscriptionViewSet(viewsets.ReadOnlyModelViewSet):
-    
-    serializer_class = UserSubscriptionPlanSerializer
-    permission_classes = [IsAuthenticated]
+class UserSubscriptionView(generics.RetrieveAPIView):
+    queryset = UserSubscription.objects.all()
+    serializer_class = UserSubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        return UserSubscription.objects.filter(user=self.request.user)
+    def get_object(self):
+        return self.queryset.get(user=self.request.user)

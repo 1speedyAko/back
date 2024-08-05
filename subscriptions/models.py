@@ -49,3 +49,4 @@ class UserSubscription(models.Model):
             elif self.plan.category == 'platinum':
                 self.end_date = self.start_date + timedelta(days=90)
         super().save(*args, **kwargs)
+

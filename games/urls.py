@@ -1,12 +1,9 @@
+# games/urls.py
+
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import GameViewSet
-
-router = DefaultRouter()
-router.register(r'games',GameViewSet)
-
+from .views import FreeOddsListView, PremiumPicksListView
 
 urlpatterns = [
-    path('' , include(router.urls)),
-    path('premium_odds/', GameViewSet.as_view({'get': 'premium_odds'}), name='premium-odds'),
+    path('free-odds/', FreeOddsListView.as_view(), name='free-odds'),
+    path('premium-picks/', PremiumPicksListView.as_view(), name='premium-picks'),
 ]

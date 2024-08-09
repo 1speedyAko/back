@@ -16,23 +16,17 @@ Including another URLconf
 """
 from django.conf import settings
 from django.conf.urls.static import static
-from django.urls import path, include
 from django.contrib import admin
-
-from django.conf import settings
-from django.conf.urls.static import static
 from django.urls import path, include
-from django.contrib import admin
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('main.urls')),
-    path('users/', include('users.urls')),
-    path('api/', include('products.urls')),
-    path('api/', include('subscriptions.urls')),
-    path('api/', include('payments.urls')),
-    path('api/', include('games.urls')),
-    path('api/', include('djoser.urls')),
-    path('api', include('djoser.urls.jwt')),
-    
+    path('users/', include('users.urls')),  # User management
+    path('api/products/', include('products.urls')),  # Products API
+    path('api/subscriptions/', include('subscriptions.urls')),  # Subscriptions API
+    path('api/payments/', include('payments.urls')),  # Payments API
+    path('api/games/', include('games.urls')),  # Games API
+    path('api/', include('djoser.urls')),  # Djoser auth endpoints
+    path('api/', include('djoser.urls.jwt')),
+        # JWT authentication endpoints
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

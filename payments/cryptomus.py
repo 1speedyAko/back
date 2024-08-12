@@ -37,3 +37,5 @@ def create_payment(user, product, amount, currency):
         return {'status': 'confirmed', 'payment': payment}
     else:
         return {'status': 'failed', 'message': response_data.get('error', 'Unknown error')}
+
+

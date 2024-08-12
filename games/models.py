@@ -1,12 +1,11 @@
 # games/models.py
 
 from django.db import models
-from django.contrib.auth import get_user_model
 
 class Game(models.Model):
     match = models.CharField(max_length=255)
     time = models.DateTimeField()
-    pick = models.CharField(max_length=255)
+    pick = models.CharField(max_length=255)  
     odd = models.FloatField()
     is_premium = models.BooleanField(default=False)
     

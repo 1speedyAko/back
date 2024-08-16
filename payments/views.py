@@ -81,3 +81,12 @@ class CryptomusWebhookView(APIView):
             return Response({'error': 'User subscription not found'}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CheckPaymentStatusView(APIView):
+    def post(self, request , *args, **kwargs):
+        order_id = request.data.get('order_id')
+        try:
+            payment = Payment.objects.get('order_id')
+            return Response({'status':payment.status}, status=status.HTTP_200_OK)
+        except Payment.DoesNotExist:
+            return Response({'error':'Payment not found'}, status=status.HTTP_404_NOT_FOUND)

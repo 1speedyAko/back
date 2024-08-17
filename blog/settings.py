@@ -118,9 +118,9 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://predictoriouszone.vercel.app/",
+    "https://predictoriouszone.vercel.app",  # Your production frontend on Vercel
+    "http://localhost:3000",                # Your local development frontend
+    "http://127.0.0.1:3000",                # Another common local address
 ]
 
 ROOT_URLCONF = 'blog.urls'

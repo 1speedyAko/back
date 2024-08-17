@@ -15,6 +15,7 @@ from datetime import timedelta
 from decouple import config
 from dotenv import load_dotenv
 from pathlib import Path
+import dj_database_url
 
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -154,11 +155,13 @@ WSGI_APPLICATION = 'blog.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',  # Specify the database engine
+        **dj_database_url.config(
+            default='postgresql://postgres:moneyapp@localhost:5432/test',
+            conn_max_age=600
+        )
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators

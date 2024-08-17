@@ -1,0 +1,22 @@
+databases:
+  - name: testdb
+    plan: free
+    databaseName: test  # Updated to match your database name
+    user: test          # Updated to match your user name
+
+services:
+  - type: web
+    plan: free
+    name: blog           # Updated to match your project name
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "python -m gunicorn blog.asgi:application -k uvicorn.workers.UvicornWorker"  # Updated to match your start command
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: testdb   # Updated to match the database name above
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: WEB_CONCURRENCY
+        value: 4

@@ -1,8 +1,9 @@
 from rest_framework import generics,permissions
-from .models import Game
-from .serializers import GameSerializer
-from django.utils import timezone
+from .models import Game, Announcement
+from .serializers import GameSerializer,AnnouncementSerializer
+from rest_framework.response import Response
 from subscriptions.models import UserSubscription
+from rest_framework.views import APIView
 
 class FreeOddsListView(generics.ListAPIView):
     serializer_class = GameSerializer
@@ -32,3 +33,8 @@ class PremiumPicksListView(generics.ListAPIView):
 
 
         
+class AnnouncementView(APIView):
+    def get(self):
+        announcements = Announcement.objects.all()
+        serializer = AnnouncementSerializer(announcements, many=True)
+        return Response(serializer.data)

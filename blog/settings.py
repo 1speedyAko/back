@@ -42,8 +42,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
+ALLOWED_HOSTS = []
 
 # Application definition
 
@@ -97,6 +98,9 @@ DJOSER = {
 SITE_NAME = "Test Django Next.js"
 
 DOMAIN = 'localhost:3000'
+
+# AUTH_PASSWORD_VALIDATORS = []
+
 
 # settings.py
 COINPAYMENTS_API_KEY = '5ff78a50d540f148ecb017fc0f2c5eaec33397b9542596ccae975a0fd1f77aab'

@@ -1,8 +1,7 @@
 from django.urls import path
-from .views import CreateSubscriptionView, CryptomusWebhookView, CheckPaymentStatusView
+from .views import create_subscription, coinpayments_webhook
 
 urlpatterns = [
-    path('create-subscription/', CreateSubscriptionView.as_view(), name='create_subscription'),
-    path('webhook/', CryptomusWebhookView.as_view(), name='cryptomus_webhook'),
-    path('check-payment-status/', CheckPaymentStatusView.as_view(), name='check_payment_status'),
+    path('create-subscription/', create_subscription, name='create-subscription'),
+    path('webhook/', coinpayments_webhook, name='coinpayments-webhook'),
 ]

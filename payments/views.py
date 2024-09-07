@@ -4,7 +4,7 @@ from .coinpayments import CoinPaymentsAPI
 from django.shortcuts import render
 from django.http import JsonResponse
 from .coinpayments import CoinPaymentsAPI
-
+from decouple import config
 def create_subscription(request):
     if request.method == 'POST':
         # Get subscription details from request data
@@ -13,9 +13,9 @@ def create_subscription(request):
         
         # Create a payment transaction
         coinpayments = CoinPaymentsAPI(
-            public_key="your_public_key",
-            private_key="your_private_key",
-            ipn_secret="your_ipn_secret"
+            public_key=config('COINPAYMENTS_PUBLIC_KEY'),
+            private_key=config('COINPAYMENTS_PRIVATE_KEY'),
+            ipn_secret=config('COINPAYMENTS_IPN_SECRET')
         )
         payment_response = coinpayments.create_payment(amount, 'USD', email, 'subscription_plan')
         

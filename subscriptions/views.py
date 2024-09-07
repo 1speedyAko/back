@@ -47,8 +47,7 @@ def create_subscription_payment(request, plan_name):
         else:
             return JsonResponse({'status': 'error', 'message': payment_response.get('error')})
 
-    return render(request, 'subscription_payment.html', {'plan': plan})
-
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
 # Handle CoinPayments webhook for payment confirmation
 @csrf_exempt
 def coinpayments_webhook(request):

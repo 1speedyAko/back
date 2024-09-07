@@ -22,9 +22,9 @@ load_dotenv(dotenv_path=env_path)
 
 
 SECRET_KEY = config('SECRET_KEY')
-COINPAYMENTS_PUBLIC_KEY = config('COINPAYMENTS_PUBLIC_KEY')
-COINPAYMENTS_PRIVATE_KEY = config('COINPAYMENTS_PRIVATE_KEY')
-COINPAYMENTS_IPN_SECRET = config('COINPAYMENTS_IPN_SECRET')
+COINPAYMENTS_PUBLIC_KEY = os.getenv('COINPAYMENTS_PUBLIC_KEY')
+COINPAYMENTS_PRIVATE_KEY = os.getenv('COINPAYMENTS_PRIVATE_KEY')
+COINPAYMENTS_IPN_SECRET = os.getenv('COINPAYMENTS_IPN_SECRET')
 NEXT_PUBLIC_DJANGO_API_URL=config('NEXT_PUBLIC_DJANGO_API_URL')
 
 
@@ -44,7 +44,7 @@ DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
 # ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
 # Application definition
 
@@ -71,7 +71,15 @@ INSTALLED_APPS = [
 
 
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
+EMAIL_HOST = os.getenv("EMAIL_HOST")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS") == 'True'
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL") # App password or main password if using "Less Secure Apps"
+# DEFAULT_FROM_EMAIL = "your_gmail_address@gmail.com"  # Optional
+
 
 DJOSER = {
     'USER_ID_FIELD': 'email',

@@ -130,10 +130,12 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    FRONTEND_DOMAIN,  # Your production frontend on Vercel
+    'https://predictoriouszone.vercel.app',# Your production frontend on Vercel
     "http://localhost:3000",                # Your local development frontend
     "http://127.0.0.1:3000",                # Another common local address
 ]
+
+CORS_ALLOW_CREDENTIALS = True
 
 # Ensure cookies are secure in production
 # SESSION_COOKIE_SECURE = True

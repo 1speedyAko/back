@@ -46,6 +46,9 @@ DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
+# Read the environment variable
+DJANGO_API_URL = config('NEXT_PUBLIC_DJANGO_API_URL', default='http://localhost:8000')
+
 # Application definition
 
 INSTALLED_APPS = [

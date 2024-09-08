@@ -42,7 +42,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
-# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost').split(',')
+# ALLOWED_HOSTS = []
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',')
 
@@ -105,14 +105,14 @@ DJOSER = {
 
 SITE_NAME = "Test Django Next.js"
 
-DOMAIN = 'localhost:3000'
+FRONTEND_DOMAIN = os.getenv('FRONTEND_DOMAIN', 'http://localhost:3000')
+BACKEND_DOMAIN = os.getenv('BACKEND_DOMAIN', 'http://localhost:8000')
+
+API_URL = f'{BACKEND_DOMAIN}'
 
 # AUTH_PASSWORD_VALIDATORS = []
 
 
-# settings.py
-COINPAYMENTS_API_KEY = '5ff78a50d540f148ecb017fc0f2c5eaec33397b9542596ccae975a0fd1f77aab'
-COINPAYMENTS_API_SECRET = 'b635c7b4d52B9388a419452c21104faEf071Da48ef2aE3ce5A963865F5C33A37'
 
 
 
@@ -130,10 +130,20 @@ MIDDLEWARE = [
 
 
 CORS_ALLOWED_ORIGINS = [
-    "https://predictoriouszone.vercel.app",  # Your production frontend on Vercel
+    FRONTEND_DOMAIN,  # Your production frontend on Vercel
     "http://localhost:3000",                # Your local development frontend
     "http://127.0.0.1:3000",                # Another common local address
 ]
+
+# Ensure cookies are secure in production
+# SESSION_COOKIE_SECURE = True
+# CSRF_COOKIE_SECURE = True
+# SECURE_SSL_REDIRECT = True
+
+# # Set security headers
+# SECURE_HSTS_SECONDS = 31536000  # 1 year
+# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# SECURE_HSTS_PRELOAD = True
 
 ROOT_URLCONF = 'blog.urls'
 

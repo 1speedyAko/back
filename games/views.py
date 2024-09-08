@@ -34,7 +34,7 @@ class PremiumPicksListView(generics.ListAPIView):
 
         
 class AnnouncementView(APIView):
-    def get(self):
+    def get(self,request):
         announcements = Announcement.objects.all()
         serializer = AnnouncementSerializer(announcements, many=True)
         return Response(serializer.data)

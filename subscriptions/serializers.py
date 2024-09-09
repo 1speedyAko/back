@@ -5,7 +5,7 @@ from .models import SubscriptionPlan, UserSubscription
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionPlan
-        fields = ['id', 'category']
+        fields = ['category', 'price', 'currency', 'description', 'discount']
 
 # Serializer for the UserSubscription model
 class UserSubscriptionSerializer(serializers.ModelSerializer):

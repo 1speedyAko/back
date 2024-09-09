@@ -6,17 +6,29 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+from django.db import models
+
 class SubscriptionPlan(models.Model):
     CATEGORY_CHOICES = [
         ('silver', 'Silver'),
         ('gold', 'Gold'),
         ('platinum', 'Platinum'),
     ]
-
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='Silver', blank=True)
-
+    
+    category = models.CharField(
+        max_length=50, 
+        choices=CATEGORY_CHOICES, 
+        default='silver', 
+        blank=True
+    )
+    price = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)  # Store price with two decimal places
+    currency = models.CharField(max_length=3, default='USD')  # Currency code, e.g., 'USD'
+    description = models.CharField(max_length=255, blank=False, null=False)  # Description of the plan
+    discount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False)  # Optional discount
+    
     def __str__(self):
-        return self.category
+        return f"{self.category.capitalize()} Plan"
+
 
 class UserSubscription(models.Model):
     STATUS_CHOICES = [

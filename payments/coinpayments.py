@@ -27,7 +27,7 @@ class CoinPaymentsAPI:
         data['version'] = 1
         data['format'] = 'json'
         data['nonce'] = str(int(time.time() * 1000))
-        
+    
         headers = {
             'hmac': hmac.new(
                 self.private_key.encode(),
@@ -35,11 +35,18 @@ class CoinPaymentsAPI:
                 hashlib.sha512
             ).hexdigest()
         }
-        
-        response = requests.post(self.api_url, data=data, headers=headers)
-        return response.json()
+    
+        try:
+            response = requests.post(self.api_url, data=data, headers=headers)
+            response.raise_for_status()  # Check if request was successful
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"Error during API request: {e}")
+            return {'error': str(e)}
+
 
     def validate_ipn(self, hmac_header, ipn_data):
         # Ensure that IPN message was not tampered with
-        calculated_hmac = hmac.new(self.private_key.encode(), ipn_data.encode(), hashlib.sha512).hexdigest()
+        calculated_hmac = hmac.new(self.private_key.encode(), requests.compat.urlencode(ipn_data).encode(), hashlib.sha512).hexdigest()
+
         return hmac_header == calculated_hmac

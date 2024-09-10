@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     "djoser",
     "corsheaders",
-    "rest_framework_simplejwt.token_blacklist",
+    'rest_framework_simplejwt.token_blacklist',
     "games",
 ]
 
@@ -104,6 +104,10 @@ DJOSER = {
     },
 }
 
+SIMPLE_JWT = {
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 
 
 SITE_NAME = "Test Django Next.js"
@@ -121,15 +125,16 @@ API_URL = f'{BACKEND_DOMAIN}'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    "corsheaders.middleware.CorsMiddleware",
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',         # To serve static files
+    'corsheaders.middleware.CorsMiddleware',              # Handle CORS before CommonMiddleware
+    'django.middleware.common.CommonMiddleware',          # General request/response middleware
+    'django.middleware.csrf.CsrfViewMiddleware',          # For CSRF protection
+    'django.contrib.sessions.middleware.SessionMiddleware',# Manages sessions
+    'django.contrib.auth.middleware.AuthenticationMiddleware',# Handles user authentication
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',# Protects from clickjacking
+    'django.contrib.messages.middleware.MessageMiddleware',# Manages messages framework
 ]
+
 
 
 CORS_ALLOWED_ORIGINS = [
@@ -141,14 +146,14 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 # Ensure cookies are secure in production
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SECURE_SSL_REDIRECT = True
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = True
 
-# # Set security headers
-# SECURE_HSTS_SECONDS = 31536000  # 1 year
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# SECURE_HSTS_PRELOAD = True
+# Set security headers
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 ROOT_URLCONF = 'blog.urls'
 

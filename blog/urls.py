@@ -26,7 +26,7 @@ urlpatterns = [
     path('api/subscriptions/', include('subscriptions.urls')),  # Subscriptions API
     path('api/payments/', include('payments.urls')),  # Payments API
     path('api/games/', include('games.urls')),  # Games API
-    path('auth/', include('djoser.urls')),  # Djoser auth endpoints
-    path('auth/', include('djoser.urls.jwt')),
+    path('api/', include('djoser.urls')),  # Djoser auth endpoints
+    path('api/', include('djoser.urls.jwt')),
         # JWT authentication endpoints
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -5,9 +5,6 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-
-from django.db import models
-
 class SubscriptionPlan(models.Model):
     CATEGORY_CHOICES = [
         ('silver', 'Silver'),
@@ -21,13 +18,15 @@ class SubscriptionPlan(models.Model):
         default='silver', 
         blank=True
     )
-    price = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)  # Store price with two decimal places
-    currency = models.CharField(max_length=3, default='USD')  # Currency code, e.g., 'USD'
-    description = models.CharField(max_length=255, blank=False, null=False)  # Description of the plan
-    discount = models.DecimalField(max_digits=6, decimal_places=2, null=False, blank=False)  # Optional discount
-    
+    price = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)
+    currency = models.CharField(max_length=3, default='USD')
+    description = models.CharField(max_length=255, blank=False, null=False)
+    discount = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)  # Made optional
+    duration_in_months = models.PositiveIntegerField(default=1)  # New field
+
     def __str__(self):
         return f"{self.category.capitalize()} Plan"
+
 
 
 class UserSubscription(models.Model):
@@ -46,7 +45,7 @@ class UserSubscription(models.Model):
         return self.status == 'active' and self.end_date > timezone.now()
 
     def __str__(self):
-        return f"{self.user.email} - "
+        return f"{self.user.email} - {self.plan.category.capitalize()} Subscription"
 
     @classmethod
     def user_has_active_subscription(cls, user):
@@ -55,11 +54,9 @@ class UserSubscription(models.Model):
     def save(self, *args, **kwargs):
         if not self.end_date:
             if self.plan.category == 'silver':
-                self.end_date = self.start_date + timedelta(days=30)
+                self.end_date = self.start_date + timedelta(days=30 * self.plan.duration_in_months)
             elif self.plan.category == 'gold':
-                self.end_date = self.start_date + timedelta(days=60)
+                self.end_date = self.start_date + timedelta(days=30 * self.plan.duration_in_months)
             elif self.plan.category == 'platinum':
-                self.end_date = self.start_date + timedelta(days=90)
+                self.end_date = self.start_date + timedelta(days=30 * self.plan.duration_in_months)
         super().save(*args, **kwargs)
-
-

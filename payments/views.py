@@ -1,10 +1,19 @@
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse
+from django.http import HttpResponse,JsonResponse
 from .coinpayments import CoinPaymentsAPI
 from django.shortcuts import render
 from django.http import JsonResponse
 from .coinpayments import CoinPaymentsAPI
 from decouple import config
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# except Exception as e:
+#     logger.error(f"Error processing payment: {e}")
+#     return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+
 def create_subscription(request):
     if request.method == 'POST':
         # Get subscription details from request data
@@ -12,11 +21,7 @@ def create_subscription(request):
         email = request.POST.get('email')
         
         # Create a payment transaction
-        coinpayments = CoinPaymentsAPI(
-            public_key=config('COINPAYMENTS_PUBLIC_KEY'),
-            private_key=config('COINPAYMENTS_PRIVATE_KEY'),
-            ipn_secret=config('COINPAYMENTS_IPN_SECRET')
-        )
+        coinpayments = CoinPaymentsAPI()
         payment_response = coinpayments.create_payment(amount, 'USD', email, 'subscription_plan')
         
         # Handle payment response

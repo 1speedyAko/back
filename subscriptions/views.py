@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
 from datetime import timedelta
 from rest_framework.views import APIView
+from django.conf import settings
 
 User = get_user_model()
 
@@ -28,9 +29,6 @@ class UserSubscriptionListView(generics.ListAPIView):
         return UserSubscription.objects.filter(user=self.request.user)
 
 
-coinpayments = CoinPaymentsAPI()
-
-
 # Handle subscription creation and redirect to payment URL
 class CreateSubscriptionPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -45,7 +43,8 @@ class CreateSubscriptionPaymentView(APIView):
             email = request.user.email
 
             # Create the payment using CoinPayments API
-            payment_response = coinpayments.create_payment(amount, 'USD', email, plan_name)
+            coinpayments = CoinPaymentsAPI()
+            payment_response = coinpayments.create_payment(amount, plan.currency, email, plan.category)
 
             if payment_response.get('error') == 'ok':
                 # Return the payment URL for redirection
@@ -82,7 +81,7 @@ def coinpayments_webhook(request):
                     # Update or create user subscription
                     subscription, created = UserSubscription.objects.get_or_create(user=user, plan=plan)
 
-                    # Set subscription duration based on plan (1 month for silver, etc.)
+                    # Set subscription duration based on plan
                     subscription.start_date = timezone.now()
                     subscription.end_date = timezone.now() + timedelta(days=30 * plan.duration_in_months)
                     subscription.status = 'active'

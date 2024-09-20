@@ -16,6 +16,8 @@ from decouple import config
 from dotenv import load_dotenv
 from pathlib import Path
 import dj_database_url
+import django_heroku
+
 
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
@@ -136,11 +138,11 @@ MIDDLEWARE = [
 
 
 
-CORS_ALLOWED_ORIGINS = [
-    'https://predictoriouszone.vercel.app',# Your production frontend on Vercel
-    "http://localhost:3000",                # Your local development frontend
-    "http://127.0.0.1:3000",                # Another common local address
-]
+# CORS_ALLOWED_ORIGINS = [
+#     'https://predictoriouszone.vercel.app',# Your production frontend on Vercel
+#     "http://localhost:3000",                # Your local development frontend
+#     "http://127.0.0.1:3000",                # Another common local address
+# ]
 
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 
@@ -208,11 +210,12 @@ WSGI_APPLICATION = 'blog.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  # Specify the database engine
-        **dj_database_url.config(
-            default='postgresql://postgres:moneyapp@localhost:5432/test',
-            conn_max_age=600
-        )
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',  # PostgreSQL backend
+        'NAME': os.getenv('DATABASE'),  # Database name
+        'USER': os.getenv('USER'),  # Database user
+        'PASSWORD': os.getenv('PASSWORD'),  # Database password
+        'HOST': os.getenv('HOST'),  # Host (e.g., 'localhost' or 'heroku')
+        'PORT': os.getenv('PORT'),  # Port (usually '5432')
     }
 }
 
@@ -247,18 +250,20 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+django_heroku.settings(locals())
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 # This setting informs Django of the URI path from which your static files will be served to users
 # Here, they well be accessible at your-domain.onrender.com/static/... or yourcustomdomain.com/static/...
-STATIC_URL = '/static/'
+
 # This production code might break development mode, so we check whether we're in DEBUG mode
-if not DEBUG:    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
-    # and renames the files with unique names for each version to support long-term caching
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# if not DEBUG:    # Tell Django to copy static assets into a path called `staticfiles` (this is specific to Render)
+#     STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+#     # Enable the WhiteNoise storage backend, which compresses static files to reduce disk use
+#     # and renames the files with unique names for each version to support long-term caching
+#     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 
 # Default primary key field type

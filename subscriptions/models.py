@@ -23,7 +23,8 @@ class SubscriptionPlan(models.Model):
     description = models.CharField(max_length=255, blank=False, null=False)
     discount = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)  # Made optional
     duration_in_months = models.PositiveIntegerField(default=1)  # New field
-
+    info_1 = models.CharField(max_length=30, blank=True,null=True)
+    info_2 = models.CharField(max_length=30, blank=True,null=True)
     def __str__(self):
         return f"{self.category.capitalize()} Plan"
 

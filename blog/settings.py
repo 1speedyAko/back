@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'users',
     'products',
     'subscriptions',
+    'django_coinpayments',
     'payments',
     'dashboard',
     'rest_framework',

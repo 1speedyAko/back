@@ -1,10 +1,12 @@
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse,JsonResponse
 from .coinpayments import CoinPaymentsAPI
-from django.shortcuts import render
 from django.http import JsonResponse
 from .coinpayments import CoinPaymentsAPI
 from decouple import config
+from django.views.decorators.csrf import csrf_exempt
+import json
+
 from django.http import HttpResponseRedirect
 import logging
 
@@ -15,19 +17,25 @@ logger = logging.getLogger(__name__)
 #     logger.error(f"Error processing payment: {e}")
 #     return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
 
+@csrf_exempt
 def create_subscription(request):
     if request.method == 'POST':
-        amount = request.POST.get('amount')
-        email = request.POST.get('email')
+        # Load data from JSON body
+        try:
+            data = json.loads(request.body)
+            amount = data.get('amount')
+            email = data.get('email')
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
         coinpayments = CoinPaymentsAPI()
         payment_response = coinpayments.create_payment(amount, 'USD', email, 'subscription_plan')
         
         if payment_response.get('error') == 'ok':
             payment_url = payment_response['result']['checkout_url']
-            return HttpResponseRedirect(payment_url)  # Redirect to CoinPayments payment page
+            return JsonResponse({'payment_url': payment_url}, status=200)  # Return the payment URL
         else:
             return JsonResponse({'status': 'error', 'message': payment_response.get('error')})
-
 @csrf_exempt
 def coinpayments_webhook(request):
     if request.method == 'POST':

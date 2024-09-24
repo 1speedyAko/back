@@ -11,7 +11,9 @@ from datetime import timedelta
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import IsAuthenticated
+import logging
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 # List all available subscription plans
@@ -31,34 +33,37 @@ class UserSubscriptionListView(generics.ListAPIView):
 
 
 # Handle subscription creation and redirect to payment URL
-@csrf_exempt
 class CreateSubscriptionPaymentView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, plan_name):
         try:
-            # Retrieve the subscription plan by its category
+            # Log incoming request data for debugging
+            logger.info(f"Received subscription request: {request.data}")
+
+            # Retrieve the subscription plan
             plan = get_object_or_404(SubscriptionPlan, category=plan_name)
-            
-            # Define the price and the email of the user making the payment
             amount = plan.price
             email = request.user.email
 
-            # Create the payment using CoinPayments API
+            # Create payment
             coinpayments = CoinPaymentsAPI()
             payment_response = coinpayments.create_payment(amount, plan.currency, email, plan.category)
 
             if payment_response.get('error') == 'ok':
-                # Return the payment URL for redirection
                 payment_url = payment_response['result']['checkout_url']
                 return JsonResponse({'payment_url': payment_url})
             else:
+                logger.error(f"Payment error: {payment_response.get('error')}")
                 return JsonResponse({'status': 'error', 'message': payment_response.get('error')}, status=400)
 
         except SubscriptionPlan.DoesNotExist:
+            logger.error("Subscription plan not found.")
             return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)
-
-
+        except Exception as e:
+            logger.exception("An unexpected error occurred.")
+            return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+        
 # Handle CoinPayments webhook for payment confirmation
 @csrf_exempt
 def coinpayments_webhook(request):

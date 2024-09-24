@@ -9,7 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
 from datetime import timedelta
 from rest_framework.views import APIView
-
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import IsAuthenticated
 
 User = get_user_model()
 
@@ -30,8 +31,9 @@ class UserSubscriptionListView(generics.ListAPIView):
 
 
 # Handle subscription creation and redirect to payment URL
+@csrf_exempt
 class CreateSubscriptionPaymentView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, plan_name):
         try:

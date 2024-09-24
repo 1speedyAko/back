@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .coinpayments import CoinPaymentsAPI
 from decouple import config
+from django.http import HttpResponseRedirect
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,23 +17,16 @@ logger = logging.getLogger(__name__)
 
 def create_subscription(request):
     if request.method == 'POST':
-        # Get subscription details from request data
         amount = request.POST.get('amount')
         email = request.POST.get('email')
-        
-        # Create a payment transaction
         coinpayments = CoinPaymentsAPI()
         payment_response = coinpayments.create_payment(amount, 'USD', email, 'subscription_plan')
         
-        # Handle payment response
         if payment_response.get('error') == 'ok':
-            return JsonResponse({
-                'status': 'success',
-                'payment_url': payment_response['result']['checkout_url']
-            })
+            payment_url = payment_response['result']['checkout_url']
+            return HttpResponseRedirect(payment_url)  # Redirect to CoinPayments payment page
         else:
             return JsonResponse({'status': 'error', 'message': payment_response.get('error')})
-
 
 @csrf_exempt
 def coinpayments_webhook(request):

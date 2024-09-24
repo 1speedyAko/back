@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import get_user_model
 from datetime import timedelta
 from rest_framework.views import APIView
-from django.conf import settings
+
 
 User = get_user_model()
 

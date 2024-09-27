@@ -41,7 +41,7 @@ def coinpayments_webhook(request):
     if request.method == 'POST':
         # Verify the HMAC signature from CoinPayments
         hmac_header = request.META.get('HTTP_HMAC')
-        ipn_data = request.POST.dict()
+        ipn_data = request.body.decode()
         
         coinpayments = CoinPaymentsAPI(
             public_key=config('COINPAYMENTS_PUBLIC_KEY'),

@@ -49,8 +49,10 @@ class CreateSubscriptionPaymentView(APIView):
             coinpayments = CoinPaymentsAPI()
             payment_response = coinpayments.create_payment(amount, plan.currency, email, plan.category)
 
+            # Check for a successful payment response
             if payment_response.get('error') == 'ok':
                 payment_url = payment_response['result']['checkout_url']
+                logger.info(f"Payment URL generated: {payment_url}")  # Log the payment URL
                 return JsonResponse({'payment_url': payment_url})
             else:
                 logger.error(f"Payment error: {payment_response.get('error')}")
@@ -62,6 +64,7 @@ class CreateSubscriptionPaymentView(APIView):
         except Exception as e:
             logger.exception("An unexpected error occurred.")
             return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+
         
 # Handle CoinPayments webhook for payment confirmation
 @csrf_exempt

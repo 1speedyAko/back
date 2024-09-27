@@ -16,7 +16,7 @@ class CoinPaymentsAPI:
             'cmd': 'create_transaction',
             'amount': amount,
             'currency1': currency,  
-            'currency2': 'BTC',     
+            'currency2': {'BTC', 'USDC',},
             'buyer_email': buyer_email,
             'custom': custom,  
             'key': self.public_key

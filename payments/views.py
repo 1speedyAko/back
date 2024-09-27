@@ -44,9 +44,9 @@ def coinpayments_webhook(request):
         ipn_data = request.POST.dict()
         
         coinpayments = CoinPaymentsAPI(
-            public_key="your_public_key",
-            private_key="your_private_key",
-            ipn_secret="your_ipn_secret"
+            public_key=config('COINPAYMENTS_PUBLIC_KEY'),
+            private_key=config('COINPAYMENTS_PRIVATE_KEY'),
+            ipn_secret=config('COINPAYMENTS_IPN_SECRET')
         )
 
         # Validate IPN response (add your custom logic)

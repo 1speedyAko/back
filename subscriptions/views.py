@@ -10,7 +10,6 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.permissions import IsAuthenticated
 import logging
 
 logger = logging.getLogger(__name__)

@@ -1,26 +1,17 @@
 from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponse,JsonResponse
-from .coinpayments import CoinPaymentsAPI
 from django.http import JsonResponse
 from .coinpayments import CoinPaymentsAPI
-from decouple import config
-from django.views.decorators.csrf import csrf_exempt
 import json
-
-from django.http import HttpResponseRedirect
 import logging
+from rest_framework.views import APIView
+from django.utils.decorators import method_decorator
 
 logger = logging.getLogger(__name__)
-
-
-# except Exception as e:
-#     logger.error(f"Error processing payment: {e}")
-#     return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
 
 @csrf_exempt
 def create_subscription(request):
     if request.method == 'POST':
-        # Load data from JSON body
+        # Load data from the JSON body
         try:
             data = json.loads(request.body)
             amount = data.get('amount')
@@ -28,34 +19,47 @@ def create_subscription(request):
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
 
+        # Create the payment transaction using CoinPaymentsAPI
         coinpayments = CoinPaymentsAPI()
         payment_response = coinpayments.create_payment(amount, 'USD', email, 'subscription_plan')
         
+        # Handle the response from CoinPayments
         if payment_response.get('error') == 'ok':
             payment_url = payment_response['result']['checkout_url']
             return JsonResponse({'payment_url': payment_url}, status=200)  # Return the payment URL
         else:
+            logger.error(f"Error processing payment: {payment_response.get('error')}")
             return JsonResponse({'status': 'error', 'message': payment_response.get('error')})
-@csrf_exempt
-def coinpayments_webhook(request):
-    if request.method == 'POST':
-        # Verify the HMAC signature from CoinPayments
-        hmac_header = request.META.get('HTTP_HMAC')
-        ipn_data = request.body.decode()
-        
-        coinpayments = CoinPaymentsAPI(
-            public_key=config('COINPAYMENTS_PUBLIC_KEY'),
-            private_key=config('COINPAYMENTS_PRIVATE_KEY'),
-            ipn_secret=config('COINPAYMENTS_IPN_SECRET')
-        )
 
-        # Validate IPN response (add your custom logic)
-        if coinpayments.validate_ipn(hmac_header, ipn_data):
-            # Handle successful payment or subscription event
-            txn_id = ipn_data.get('txn_id')
-            status = ipn_data.get('status')
-            
-            # Update payment or subscription status in your database
-            return HttpResponse('IPN received', status=200)
-        else:
-            return HttpResponse('Invalid IPN', status=400)
+class CoinPaymentsIPNView(APIView):
+    permission_classes = []  # No permissions as this will be a public endpoint
+
+    @method_decorator(csrf_exempt)
+    def post(self, request, *args, **kwargs):
+        # Extract IPN data from the POST request
+        ipn_data = request.POST
+
+        # Get the HMAC signature sent by CoinPayments
+        hmac_header = request.headers.get('HMAC')
+
+        # Validate the IPN
+        coinpayments = CoinPaymentsAPI()
+        if not coinpayments.validate_ipn(hmac_header, ipn_data):
+            return JsonResponse({'status': 'error', 'message': 'Invalid IPN'}, status=400)
+
+        # Process the payment based on status
+        status = ipn_data.get('status')  # Payment status
+        txn_id = ipn_data.get('txn_id')  # Transaction ID
+
+        if status == '100':  # Payment complete
+            # Update your database, mark the subscription as paid
+            # E.g., Subscription.objects.filter(transaction_id=txn_id).update(paid=True)
+            logger.info(f"Payment successful for txn: {txn_id}")
+            return JsonResponse({'status': 'success', 'message': 'Payment successful'})
+
+        elif status == '-1':  # Payment failed
+            # Handle failed payment
+            logger.error(f"Payment failed for txn: {txn_id}")
+            return JsonResponse({'status': 'error', 'message': 'Payment failed'}, status=400)
+
+        return JsonResponse({'status': 'error', 'message': 'Unhandled IPN status'}, status=400)

@@ -11,17 +11,31 @@ class CoinPaymentsAPI:
         self.api_url = "https://www.coinpayments.net/api.php"
 
     def create_payment(self, amount, currency, buyer_email, subscription_plan):
+    # Define a mapping between fiat currencies and cryptocurrency counterparts
+        currency_mapping = {
+            "USD": "USDC",  # Map USD to USDC for CoinPayments
+            "BTC": "BTC",
+            # Add other mappings as needed
+        }
+
+        # Map the provided currency to the correct cryptocurrency
+        currency2 = currency_mapping.get(currency, "BTC")  # Default to BTC if currency not in mapping
+
+        # Construct the payload
         payload = {
             "cmd": "create_transaction",
             "amount": amount,
-            "currency1": "USD",
-            "currency2": currency,  # e.g., BTC, ETH
+            "currency1": "USD",  # Currency1 is USD (fiat)
+            "currency2": currency2,  # Mapped cryptocurrency (e.g., USDC, BTC, ETH)
             "buyer_email": buyer_email,
             "item_name": subscription_plan,
-            "ipn_url": "https://blog-a-878baae2c14f.herokuapp.com/payments/ipn-handler/",  # Replace with actual URL
+            "ipn_url": "https://blog-a-878baae2c14f.herokuapp.com/payments/ipn-handler/",  # IPN handler URL
             "key": self.public_key,
         }
+
+        # Send the payload to the CoinPayments API
         return self._post(payload)
+
 
     def _post(self, data):
         data['version'] = 1

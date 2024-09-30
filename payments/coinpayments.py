@@ -13,10 +13,10 @@ class CoinPaymentsAPI:
     def create_payment(self, amount, currency, buyer_email, subscription_plan):
     # Define a mapping between fiat currencies and cryptocurrency counterparts
         currency_mapping = {
-            "USD": "USDC",  # Map USD to USDC for CoinPayments
-            "BTC": "BTC",
-            # Add other mappings as needed
+            "USDC": "USDC",  # Map USD to USDC (ERC-20) for CoinPayments
+            "USD": "LTC",   # Map to Litecoin
         }
+
 
         # Map the provided currency to the correct cryptocurrency
         currency2 = currency_mapping.get(currency, "BTC")  # Default to BTC if currency not in mapping

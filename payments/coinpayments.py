@@ -29,7 +29,7 @@ class CoinPaymentsAPI:
             "currency2": currency2,  # Mapped cryptocurrency (e.g., USDC, BTC, ETH)
             "buyer_email": buyer_email,
             "item_name": subscription_plan,
-            "ipn_url": "https://blog-a-878baae2c14f.herokuapp.com/payments/ipn-handler/",  # IPN handler URL
+            "ipn_url": "https://blog-a-878baae2c14f.herokuapp.com/api/payments/ipn-handler/",  # IPN handler URL
             "key": self.public_key,
         }
 

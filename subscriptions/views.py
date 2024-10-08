@@ -35,6 +35,24 @@ class UserSubscriptionListView(generics.ListAPIView):
 class CreateSubscriptionPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    # Handle GET requests to retrieve subscription details
+    def get(self, request, plan_name):
+        try:
+            # Fetch the subscription plan based on the name
+            plan = get_object_or_404(SubscriptionPlan, category=plan_name)
+            
+            # Return subscription plan details as JSON response
+            return JsonResponse({
+                'plan_name': plan.category,
+                'price': plan.price,
+                'currency': plan.currency,
+                'duration_in_months': plan.duration_in_months
+            })
+        except SubscriptionPlan.DoesNotExist:
+            logger.error("Subscription plan not found.")
+            return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)
+
+    # Handle POST requests to initiate a payment
     def post(self, request, plan_name):
         try:
             # Log incoming request data for debugging

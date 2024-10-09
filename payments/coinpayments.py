@@ -22,18 +22,20 @@ class CoinPaymentsAPI:
 
         # Use currency mapping or default to BTC
         currency2 = currency_mapping.get(currency, "BTC")  # Default to BTC if currency not found
-
+        
         # Construct the payload for the CoinPayments API
         payload = {
-            "cmd": "create_transaction",         # Command to create a transaction
-            "amount": amount,                    # The amount in USD (or USDC equivalent)
-            "currency1": "USD",                  # Currency1 is the fiat currency (USD)
-            "currency2": currency2,              # Currency2 is the cryptocurrency (e.g., USDC, LTC)
-            "buyer_email": buyer_email,          # The buyer's email
-            "item_name": subscription_plan,      # Name of the subscription plan
+            "version": "1",                              # Required API version
+            "cmd": "create_transaction",                 # Command to create a transaction
+            "amount": amount,                            # Amount to charge in currency1
+            "currency1": "USD",                          # Fiat currency for amount
+            "currency2": currency2,                      # Cryptocurrency to receive
+            "buyer_email": buyer_email,                  # Buyer's email
+            "item_name": subscription_plan,              # Name of the subscription
             "ipn_url": "https://blog-a-878baae2c14f.herokuapp.com/api/payments/ipn-handler/",  # IPN handler URL
-            "key": self.public_key,              # Your public API key
+            "key": self.public_key,                      # Your public API key
         }
+
 
         # Send the payload to the CoinPayments API and get the response
         payment_response = self._post(payload)

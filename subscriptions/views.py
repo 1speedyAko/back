@@ -43,11 +43,13 @@ class CreateSubscriptionPaymentView(APIView):
             
             # Return subscription plan details as JSON response
             return JsonResponse({
-                'plan_name': plan.category,
-                'price': plan.price,
-                'currency': plan.currency,
-                'duration_in_months': plan.duration_in_months
+                'subscription_plan': plan.category,                # Corresponds to subscription_plan in frontend
+                'amount': plan.price,                              # Amount to charge
+                'currency': plan.currency,                         # Currency for the transaction
+                'duration_in_months': plan.duration_in_months,    # Duration in months
+                'buyer_email': request.user.email                  # Add buyer_email field to match frontend
             })
+
         except SubscriptionPlan.DoesNotExist:
             logger.error("Subscription plan not found.")
             return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)

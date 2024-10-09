@@ -39,18 +39,15 @@ class CoinPaymentsAPI:
         payment_response = self._post(payload)
 
         # Process the API response
-        if 'error' not in payment_response or payment_response['error'] == 'ok':
-            # Successful response; return payment data for frontend
-            return JsonResponse({
-                'address': payment_response['result']['address'],        # Payment address
-                'amount': payment_response['result']['amount'],          # Amount to send in the selected crypto
-                'qr_code': payment_response['result']['qrcode_url'],     # QR code URL for easier payment
-                'currency': currency2,                                   # Selected cryptocurrency
-            }, status=200)
+        if payment_response.get('error') == 'ok':
+            return {
+                'checkout_url': payment_response['result']['checkout_url']
+            }
         else:
-            # If there's an error in the API response
-            return JsonResponse({'error': payment_response.get('error', 'Unknown error')}, status=400)
-
+            # Return error message if response failed
+            return {
+                'error': payment_response.get('error', 'Unknown error')
+            }
     def _post(self, data):
         # Add version, format, and nonce to payload
         data['version'] = 1

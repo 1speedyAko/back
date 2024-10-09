@@ -52,27 +52,25 @@ class CreateSubscriptionPaymentView(APIView):
             logger.error("Subscription plan not found.")
             return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)
 
-    # Handle POST requests to initiate a payment
+
+
     def post(self, request, plan_name):
         try:
             plan = get_object_or_404(SubscriptionPlan, category=plan_name)
-            amount = plan.price
             email = request.user.email
 
-            # Create payment
             coinpayments = CoinPaymentsAPI()
-            payment_response = coinpayments.create_payment(amount, plan.currency, email, plan.category)
+            payment_response = coinpayments.create_payment(plan.price, plan.currency, email, plan.category)
 
-            if payment_response.get('error') == 'ok':
-                payment_url = payment_response['result']['checkout_url']
-                return JsonResponse({'payment_url': payment_url})
+            if 'checkout_url' in payment_response:
+                return JsonResponse({'payment_url': payment_response['checkout_url']})
             else:
                 return JsonResponse({'status': 'error', 'message': payment_response.get('error')}, status=400)
 
-        except SubscriptionPlan.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)
         except Exception as e:
+            logger.exception("Unexpected error in subscription creation")
             return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+
         
 # Handle CoinPayments webhook for payment confirmation
 @csrf_exempt

@@ -1,7 +1,5 @@
 from django.db import models
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from products.models import Product
 
 User = get_user_model()
 
@@ -12,15 +10,14 @@ class Payment(models.Model):
         ('failed', 'Failed'),
     ]
 
-    order_id = models.CharField(max_length=255, unique=True, blank=False, default=1)
+    order_id = models.CharField(max_length=255, unique=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, default='silver')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=10)
+    currency = models.CharField(max_length=10, default='USD')
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    transaction_id = models.CharField(max_length=255, unique=True, default=1)
+    transaction_id = models.CharField(max_length=255, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.user} - {self.product} - {self.status}"
+        return f"{self.user} - {self.order_id} - {self.status}"

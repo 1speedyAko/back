@@ -1,114 +1,82 @@
-from rest_framework import generics, permissions
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import get_object_or_404
-from .models import SubscriptionPlan, UserSubscription
-from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
+from django.conf import settings
 from django.utils import timezone
-from payments.coinpayments import CoinPaymentsAPI
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import get_user_model
-from datetime import timedelta
 from rest_framework.views import APIView
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.response import Response
+from rest_framework import status
+from .models import SubscriptionPlan, UserSubscription, Payment
+from .serializers import SubscriptionPlanSerializer, UserSubscriptionSerializer
+from .binance_service import BinancePaymentService
+import time
+import hmac
+import hashlib
 import logging
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
-# List all available subscription plans
-class SubscriptionPlanListView(generics.ListAPIView):
-    queryset = SubscriptionPlan.objects.all()
-    serializer_class = SubscriptionPlanSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class SubscriptionPlanListView(APIView):
+    def get(self, request):
+        plans = SubscriptionPlan.objects.all()
+        serializer = SubscriptionPlanSerializer(plans, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-
-# List the current user's subscriptions
-class UserSubscriptionListView(generics.ListAPIView):
-    serializer_class = UserSubscriptionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return UserSubscription.objects.filter(user=self.request.user)
-
-
-# Handle subscription creation and redirect to payment URL
-class CreateSubscriptionPaymentView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    # Handle GET requests to retrieve subscription details
-    def get(self, request, plan_name):
-        try:
-            # Fetch the subscription plan based on the name
-            plan = get_object_or_404(SubscriptionPlan, category=plan_name)
-            
-            # Return subscription plan details as JSON response
-            return JsonResponse({
-                'subscription_plan': plan.category,                # Corresponds to subscription_plan in frontend
-                'amount': plan.price,                              # Amount to charge
-                'currency': plan.currency,                         # Currency for the transaction
-                'duration_in_months': plan.duration_in_months,    # Duration in months
-                'buyer_email': request.user.email                  # Add buyer_email field to match frontend
-            })
-
-        except SubscriptionPlan.DoesNotExist:
-            logger.error("Subscription plan not found.")
-            return JsonResponse({'status': 'error', 'message': 'Subscription plan not found'}, status=404)
-
-
-
+class CreateSubscriptionView(APIView):
     def post(self, request, plan_name):
         try:
-            plan = get_object_or_404(SubscriptionPlan, category=plan_name)
-            email = request.user.email
+            plan = SubscriptionPlan.objects.get(category=plan_name.lower())
+            order_id = f"{request.user.id}-{int(time.time())}"
+            
+            # Create payment entry with 'pending' status
+            payment = Payment.objects.create(
+                user=request.user,
+                amount=plan.price,
+                currency=plan.currency,
+                status='pending',
+                order_id=order_id
+            )
 
-            coinpayments = CoinPaymentsAPI()
-            payment_response = coinpayments.create_payment(plan.price, plan.currency, email, plan.category)
+            # Generate payment link via BinancePaymentService
+            binance_service = BinancePaymentService()
+            payment_url = binance_service.create_payment(order_id, plan.price, plan.currency)
 
-            if 'checkout_url' in payment_response:
-                return JsonResponse({'payment_url': payment_response['checkout_url']})
-            else:
-                return JsonResponse({'status': 'error', 'message': payment_response.get('error')}, status=400)
+            if not payment_url:
+                return Response({"error": "Failed to generate payment link"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+            return Response({"payment_url": payment_url}, status=status.HTTP_201_CREATED)
+
+        except SubscriptionPlan.DoesNotExist:
+            return Response({"error": "Subscription plan not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.exception("Unexpected error in subscription creation")
-            return JsonResponse({'status': 'error', 'message': 'Internal server error'}, status=500)
+            logger.error(f"Error in subscription creation: {e}")
+            return Response({"error": "An error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        
-# Handle CoinPayments webhook for payment confirmation
-@csrf_exempt
-def coinpayments_webhook(request):
-    if request.method == 'POST':
-        hmac_header = request.META.get('HTTP_HMAC')
-        ipn_data = request.POST.dict()
+class BinanceIPNView(APIView):
+    def post(self, request):
+        # Verify Binance's IPN signature
+        received_signature = request.headers.get("Binance-IPN-Signature")
+        payload = request.body
 
-        coinpayments = CoinPaymentsAPI()
+        # Generate the HMAC SHA256 signature
+        secret = settings.BINANCE_API_SECRET.encode()
+        calculated_signature = hmac.new(secret, payload, hashlib.sha256).hexdigest()
 
-        # Validate the IPN data from CoinPayments
-        if coinpayments.validate_ipn(hmac_header, ipn_data):
-            status = ipn_data.get('status')
-            plan_name = ipn_data.get('custom')  # Plan name (sent in custom field)
-            buyer_email = ipn_data.get('buyer_email')
+        if calculated_signature != received_signature:
+            logger.warning("Invalid IPN signature received.")
+            return Response({"error": "Invalid signature"}, status=status.HTTP_403_FORBIDDEN)
 
-            if status == '100':  # Payment completed successfully
-                try:
-                    # Fetch user and plan details
-                    user = User.objects.get(email=buyer_email)
-                    plan = SubscriptionPlan.objects.get(category=plan_name)
+        transaction_id = request.data.get("transaction_id")
+        order_id = request.data.get("merchant_order_id")
+        status = request.data.get("status")
 
-                    # Update or create user subscription
-                    subscription, created = UserSubscription.objects.get_or_create(user=user, plan=plan)
+        if not all([transaction_id, order_id, status]):
+            logger.error("Incomplete IPN data received.")
+            return Response({"error": "Incomplete data"}, status=status.HTTP_400_BAD_REQUEST)
 
-                    # Set subscription duration based on plan
-                    subscription.start_date = timezone.now()
-                    subscription.end_date = timezone.now() + timedelta(days=30 * plan.duration_in_months)
-                    subscription.status = 'active'
-                    subscription.save()
-
-                    return HttpResponse('IPN received and subscription updated', status=200)
-
-                except (User.DoesNotExist, SubscriptionPlan.DoesNotExist):
-                    return HttpResponse('Invalid user or subscription plan', status=400)
-
-        return HttpResponse('Invalid IPN', status=400)
-
-    return HttpResponse('Invalid request method', status=400)
+        try:
+            payment = Payment.objects.get(order_id=order_id)
+            payment.status = "confirmed" if status == "SUCCESS" else "failed"
+            payment.transaction_id = transaction_id
+            payment.save()
+            return Response({"status": "success"}, status=status.HTTP_200_OK)
+        except Payment.DoesNotExist:
+            logger.error(f"Payment with order_id {order_id} not found.")
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)

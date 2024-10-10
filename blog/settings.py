@@ -24,9 +24,10 @@ load_dotenv(dotenv_path=env_path)
 
 
 SECRET_KEY = config('SECRET_KEY')
-COINPAYMENTS_PUBLIC_KEY = os.getenv('COINPAYMENTS_PUBLIC_KEY')
-COINPAYMENTS_PRIVATE_KEY = os.getenv('COINPAYMENTS_PRIVATE_KEY')
-COINPAYMENTS_IPN_SECRET = os.getenv('COINPAYMENTS_IPN_SECRET')
+# settings.py
+BINANCE_API_KEY = os.getenv('BINANCE_API_KEY')
+BINANCE_API_SECRET = os.getenv('BINANCE_API_SECRET')
+
 NEXT_PUBLIC_DJANGO_API_URL=config('NEXT_PUBLIC_DJANGO_API_URL')
 
 
@@ -71,6 +72,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     "games",
     'django_extensions',
+    'python-binance',
 ]
 
 

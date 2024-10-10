@@ -72,7 +72,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     "games",
     'django_extensions',
-    "python-binance",
+    # "python-binance",
 ]
 
 

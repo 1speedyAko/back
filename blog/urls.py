@@ -24,7 +24,6 @@ urlpatterns = [
     path('users/', include('users.urls')),  # User management
     path('api/products/', include('products.urls')),  # Products API
     path('api/subscriptions/', include('subscriptions.urls')),  # Subscriptions API
-    path('api/payments/', include('payments.urls')),  # Payments API
     path('api/games/', include('games.urls')),  # Games API
     path('api/', include('djoser.urls')),  # Djoser auth endpoints
     path('api/', include('djoser.urls.jwt')),
